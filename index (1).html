@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
+  <title>AIESEC Project Navigator</title>
+  <style>
+    :root {
+      --blue: #037EF3;
+      --blue-dark: #0260c2;
+      --green: #0CBD6C;
+      --orange: #F85A40;
+      --bg: #f4f7fb;
+      --card: #ffffff;
+      --text: #1a1a2e;
+      --muted: #6b7280;
+      --border: #e5e7eb;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 20px 16px 60px;
+    }
+    header {
+      text-align: center;
+      padding: 28px 0 12px;
+    }
+    header h1 {
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: var(--blue);
+      letter-spacing: -0.02em;
+    }
+    header p {
+      color: var(--muted);
+      font-size: 0.95rem;
+      margin-top: 4px;
+    }
+    .progress {
+      display: flex;
+      gap: 6px;
+      margin: 20px 0 28px;
+    }
+    .progress-dot {
+      flex: 1;
+      height: 4px;
+      border-radius: 2px;
+      background: var(--border);
+      transition: background 0.3s;
+    }
+    .progress-dot.active { background: var(--blue); }
+    .progress-dot.done { background: var(--green); }
+
+    .card {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 24px 20px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+      margin-bottom: 16px;
+    }
+    .card h2 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+    .card .subtitle {
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 20px;
+    }
+
+    .options {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .option {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-size: 0.95rem;
+      font-weight: 500;
+      user-select: none;
+    }
+    .option:hover { border-color: #b3d4fc; background: #f0f7ff; }
+    .option.selected {
+      border-color: var(--blue);
+      background: #e8f2fe;
+      color: var(--blue-dark);
+    }
+    .option input { display: none; }
+
+    .chip-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .chip {
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: 2px solid var(--border);
+      font-size: 0.88rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s;
+      user-select: none;
+    }
+    .chip:hover { border-color: #b3d4fc; }
+    .chip.selected {
+      border-color: var(--blue);
+      background: var(--blue);
+      color: white;
+    }
+
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      margin-top: 20px;
+    }
+    .btn:active { transform: scale(0.98); }
+    .btn-primary {
+      background: var(--blue);
+      color: white;
+    }
+    .btn-primary:hover { background: var(--blue-dark); }
+    .btn-primary:disabled {
+      background: #a0c4f0;
+      cursor: not-allowed;
+    }
+    .btn-secondary {
+      background: transparent;
+      color: var(--muted);
+      margin-top: 10px;
+    }
+
+    /* Results */
+    .result-card {
+      background: var(--card);
+      border-radius: 14px;
+      padding: 18px;
+      margin-bottom: 14px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.05);
+      border-left: 4px solid var(--blue);
+    }
+    .result-card h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .result-meta {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+    .result-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+    .tag {
+      font-size: 0.75rem;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: #eef2ff;
+      color: #3730a3;
+    }
+    .tag.green { background: #dcfce7; color: #166534; }
+    .tag.orange { background: #ffedd5; color: #9a3412; }
+    .result-card a {
+      display: inline-block;
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--blue);
+      text-decoration: none;
+    }
+    .result-card a:hover { text-decoration: underline; }
+
+    .match-score {
+      float: right;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--green);
+      background: #dcfce7;
+      padding: 2px 8px;
+      border-radius: 999px;
+    }
+
+    .name-form {
+      margin-top: 24px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+    }
+    .name-form label {
+      display: block;
+      font-size: 0.9rem;
+      font-weight: 500;
+      margin-bottom: 6px;
+    }
+    .name-form input {
+      width: 100%;
+      padding: 12px 14px;
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      font-size: 1rem;
+      outline: none;
+    }
+    .name-form input:focus { border-color: var(--blue); }
+
+    .hidden { display: none !important; }
+    .center { text-align: center; }
+    .mt-12 { margin-top: 12px; }
+    .loading {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--muted);
+    }
+    .spinner {
+      width: 36px; height: 36px;
+      border: 3px solid var(--border);
+      border-top-color: var(--blue);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin: 0 auto 16px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    footer {
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 40px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>AIESEC Project Navigator</h1>
+      <p>Find exchange projects that match you</p>
+    </header>
+
+    <div class="progress" id="progress"></div>
+
+    <!-- STEP 0: Welcome -->
+    <div id="step-0" class="card">
+      <h2>Welcome 👋</h2>
+      <p class="subtitle">Answer a few quick questions and we’ll recommend the best Global Volunteer projects for you.</p>
+      <p style="font-size:0.9rem;color:var(--muted);margin-bottom:8px;">This takes less than a minute.</p>
+      <button class="btn btn-primary" onclick="nextStep()">Start</button>
+    </div>
+
+    <!-- STEP 1: Duration -->
+    <div id="step-1" class="card hidden">
+      <h2>How long do you want to go?</h2>
+      <p class="subtitle">Most projects are 4 or 6 weeks.</p>
+      <div class="options" id="duration-options">
+        <label class="option"><input type="radio" name="duration" value="4 weeks"> 4 weeks</label>
+        <label class="option"><input type="radio" name="duration" value="6 weeks"> 6 weeks</label>
+        <label class="option"><input type="radio" name="duration" value="8 weeks"> 8 weeks</label>
+        <label class="option"><input type="radio" name="duration" value="any"> Any duration is fine</label>
+      </div>
+      <button class="btn btn-primary" id="btn-1" disabled onclick="nextStep()">Continue</button>
+    </div>
+
+    <!-- STEP 2: Region / Countries -->
+    <div id="step-2" class="card hidden">
+      <h2>Where would you like to go?</h2>
+      <p class="subtitle">Select regions, or type specific countries below.</p>
+      <div class="chip-grid" id="region-chips"></div>
+
+      <div style="margin-top: 18px;">
+        <label for="country-input" style="display:block;font-size:0.9rem;font-weight:500;margin-bottom:6px;">
+          Or type specific countries
+        </label>
+        <input
+          type="text"
+          id="country-input"
+          placeholder="e.g. Egypt, Romania, India"
+          style="width:100%;padding:12px 14px;border:2px solid var(--border);border-radius:10px;font-size:1rem;outline:none;"
+          onfocus="this.style.borderColor='var(--blue)'"
+          onblur="this.style.borderColor='var(--border)'"
+        />
+        <p style="font-size:0.8rem;color:var(--muted);margin-top:6px;">
+          Separate multiple countries with commas. Leave empty to use only the regions above.
+        </p>
+      </div>
+
+      <button class="btn btn-primary" onclick="nextStep()">Continue</button>
+      <button class="btn btn-secondary" onclick="prevStep()">Back</button>
+    </div>
+
+    <!-- STEP 3: Languages -->
+    <div id="step-3" class="card hidden">
+      <h2>Which languages do you speak?</h2>
+      <p class="subtitle">Select all that apply.</p>
+      <div class="chip-grid" id="lang-chips">
+        <div class="chip" data-value="English">English</div>
+        <div class="chip" data-value="Arabic">Arabic</div>
+        <div class="chip" data-value="French">French</div>
+        <div class="chip" data-value="Spanish">Spanish</div>
+        <div class="chip" data-value="Portuguese">Portuguese</div>
+        <div class="chip" data-value="Turkish">Turkish</div>
+        <div class="chip" data-value="Other">Other</div>
+      </div>
+      <button class="btn btn-primary" onclick="nextStep()">Continue</button>
+      <button class="btn btn-secondary" onclick="prevStep()">Back</button>
+    </div>
+
+    <!-- STEP 4: Activity type -->
+    <div id="step-4" class="card hidden">
+      <h2>What kind of project interests you?</h2>
+      <p class="subtitle">Pick one or more.</p>
+      <div class="chip-grid" id="activity-chips">
+        <div class="chip" data-value="Teaching / Education">Teaching & Education</div>
+        <div class="chip" data-value="Business / Marketing / Entrepreneurship">Business & Marketing</div>
+        <div class="chip" data-value="Arts & Creativity">Arts & Creativity</div>
+        <div class="chip" data-value="Environmental / Sustainability">Environment & Sustainability</div>
+        <div class="chip" data-value="Health & Wellbeing">Health & Wellbeing</div>
+        <div class="chip" data-value="Social Work / Community">Social Work & Community</div>
+        <div class="chip" data-value="Psychology / Mental Health">Psychology & Mental Health</div>
+        <div class="chip" data-value="any">Any type is fine</div>
+      </div>
+      <button class="btn btn-primary" onclick="nextStep()">Continue</button>
+      <button class="btn btn-secondary" onclick="prevStep()">Back</button>
+    </div>
+
+    <!-- STEP 5: Food -->
+    <div id="step-5" class="card hidden">
+      <h2>How important are meals?</h2>
+      <p class="subtitle">Some projects provide food, others don’t.</p>
+      <div class="options" id="food-options">
+        <label class="option"><input type="radio" name="food" value="meals"> I prefer projects that provide meals</label>
+        <label class="option"><input type="radio" name="food" value="any"> Doesn’t matter</label>
+      </div>
+      <button class="btn btn-primary" id="btn-5" disabled onclick="showResults()">See my recommendations</button>
+      <button class="btn btn-secondary" onclick="prevStep()">Back</button>
+    </div>
+
+    <!-- RESULTS -->
+    <div id="results" class="hidden">
+      <div class="card">
+        <h2>Your recommended projects</h2>
+        <p class="subtitle" id="results-count">Here are the best matches based on your answers.</p>
+      </div>
+      <div id="results-list"></div>
+
+      <div class="card name-form">
+        <label for="person-name">Want to save these recommendations?</label>
+        <input type="text" id="person-name" placeholder="Your first name (optional)" />
+        <button class="btn btn-primary mt-12" onclick="saveRecommendations()">Save & finish</button>
+        <button class="btn btn-secondary" onclick="restart()">Start over</button>
+      </div>
+    </div>
+
+    <div id="loading" class="loading hidden">
+      <div class="spinner"></div>
+      <p>Finding the best projects for you…</p>
+    </div>
+
+    <div id="thankyou" class="card hidden center">
+      <h2>Thank you! 🎉</h2>
+      <p class="subtitle">Your recommendations have been noted.</p>
+      <p style="font-size:0.9rem;color:var(--muted);margin:12px 0 20px;">
+        In the full version this will also increase the popularity score of each project and save your name + projects to a Google Sheet.
+      </p>
+      <button class="btn btn-primary" onclick="restart()">Find more projects</button>
+    </div>
+
+    <footer>
+      AIESEC Project Navigator · Prototype · Data from opportunities_tagged_v6
+    </footer>
+  </div>
+
+  <script>
+    // ========== STATE ==========
+    let allProjects = [];
+    let currentStep = 0;
+    const totalSteps = 5; // 0 to 5
+    const answers = {
+      duration: null,
+      regions: [],
+      countries: [],   // typed countries
+      languages: [],
+      activities: [],
+      food: null
+    };
+
+    const regionMap = {
+      "Africa": ["Egypt","Tunisia","Morocco","Nigeria","Ghana","Kenya","Benin","Togo","Rwanda","Tanzania","Mozambique","Burkina Faso","Cote D'Ivoire"],
+      "Asia": ["India","VIETNAM","Nepal","Indonesia","Thailand","Korea","Philippines","Sri Lanka","Taiwan","Pakistan","Kazakhstan","Kyrgyzstan ","Jordan","Bahrain"],
+      "Europe": ["Romania","Turkiye","Italy","Greece","Serbia","Poland","Portugal","Spain","Croatia","Czech Republic","Hungary","Ukraine","Moldova","Bosnia and Herzegovina","Germany"],
+      "Americas": ["Brazil","Argentina","Peru","Colombia","Mexico","Bolivia"]
+    };
+
+    // ========== INIT ==========
+    async function init() {
+      try {
+        const res = await fetch('opportunities.json');
+        allProjects = await res.json();
+        console.log('Loaded', allProjects.length, 'projects');
+      } catch (e) {
+        console.error(e);
+        document.querySelector('.container').innerHTML = `
+          <div class="card">
+            <h2>Could not load data</h2>
+            <p>Make sure <code>opportunities.json</code> is in the same folder as this HTML file.</p>
+          </div>`;
+        return;
+      }
+
+      // Region chips
+      const regionContainer = document.getElementById('region-chips');
+      Object.keys(regionMap).forEach(r => {
+        const chip = document.createElement('div');
+        chip.className = 'chip';
+        chip.dataset.value = r;
+        chip.textContent = r;
+        chip.onclick = () => toggleChip(chip, 'regions');
+        regionContainer.appendChild(chip);
+      });
+      const anyChip = document.createElement('div');
+      anyChip.className = 'chip';
+      anyChip.dataset.value = 'any';
+      anyChip.textContent = 'Anywhere is fine';
+      anyChip.onclick = () => toggleChip(anyChip, 'regions');
+      regionContainer.appendChild(anyChip);
+
+      // Language chips
+      document.querySelectorAll('#lang-chips .chip').forEach(chip => {
+        chip.onclick = () => toggleChip(chip, 'languages');
+      });
+
+      // Activity chips
+      document.querySelectorAll('#activity-chips .chip').forEach(chip => {
+        chip.onclick = () => toggleChip(chip, 'activities');
+      });
+
+      // Radio options
+      document.querySelectorAll('#duration-options .option').forEach(opt => {
+        opt.addEventListener('click', () => {
+          document.querySelectorAll('#duration-options .option').forEach(o => o.classList.remove('selected'));
+          opt.classList.add('selected');
+          answers.duration = opt.querySelector('input').value;
+          document.getElementById('btn-1').disabled = false;
+        });
+      });
+      document.querySelectorAll('#food-options .option').forEach(opt => {
+        opt.addEventListener('click', () => {
+          document.querySelectorAll('#food-options .option').forEach(o => o.classList.remove('selected'));
+          opt.classList.add('selected');
+          answers.food = opt.querySelector('input').value;
+          document.getElementById('btn-5').disabled = false;
+        });
+      });
+
+      updateProgress();
+    }
+
+    function toggleChip(chip, key) {
+      const value = chip.dataset.value;
+      if (value === 'any') {
+        // Clear others
+        document.querySelectorAll(`#${key === 'regions' ? 'region' : key === 'languages' ? 'lang' : 'activity'}-chips .chip`).forEach(c => c.classList.remove('selected'));
+        chip.classList.add('selected');
+        answers[key] = ['any'];
+        return;
+      }
+      // Remove "any" if present
+      const anyChip = document.querySelector(`#${key === 'regions' ? 'region' : key === 'languages' ? 'lang' : 'activity'}-chips .chip[data-value="any"]`);
+      if (anyChip) anyChip.classList.remove('selected');
+      answers[key] = answers[key].filter(v => v !== 'any');
+
+      chip.classList.toggle('selected');
+      if (chip.classList.contains('selected')) {
+        if (!answers[key].includes(value)) answers[key].push(value);
+      } else {
+        answers[key] = answers[key].filter(v => v !== value);
+      }
+    }
+
+    function updateProgress() {
+      const bar = document.getElementById('progress');
+      bar.innerHTML = '';
+      for (let i = 0; i <= totalSteps; i++) {
+        const dot = document.createElement('div');
+        dot.className = 'progress-dot';
+        if (i < currentStep) dot.classList.add('done');
+        if (i === currentStep) dot.classList.add('active');
+        bar.appendChild(dot);
+      }
+    }
+
+    function showStep(n) {
+      for (let i = 0; i <= totalSteps; i++) {
+        const el = document.getElementById('step-' + i);
+        if (el) el.classList.toggle('hidden', i !== n);
+      }
+      document.getElementById('results').classList.add('hidden');
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('thankyou').classList.add('hidden');
+      currentStep = n;
+      updateProgress();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function nextStep() {
+      // Capture typed countries when leaving step 2
+      if (currentStep === 2) {
+        const raw = (document.getElementById('country-input').value || '').trim();
+        if (raw) {
+          answers.countries = raw.split(',')
+            .map(c => c.trim())
+            .filter(c => c.length > 0);
+        } else {
+          answers.countries = [];
+        }
+      }
+      if (currentStep < totalSteps) showStep(currentStep + 1);
+    }
+    function prevStep() {
+      if (currentStep > 0) showStep(currentStep - 1);
+    }
+
+    // ========== MATCHING ==========
+    function scoreProject(p) {
+      let score = 0;
+      const reasons = [];
+
+      // Duration
+      if (answers.duration && answers.duration !== 'any') {
+        if (p.duration && p.duration.includes(answers.duration.replace(' weeks',''))) {
+          score += 30;
+          reasons.push('duration');
+        } else if (p.duration && p.duration.includes(',')) {
+          // multi duration
+          if (p.duration.includes(answers.duration.split(' ')[0])) {
+            score += 20;
+            reasons.push('duration');
+          }
+        }
+      } else {
+        score += 10; // any
+      }
+
+      // Region / Country (typed countries take priority)
+      let locationMatched = false;
+
+      // 1. Check typed countries first
+      if (answers.countries && answers.countries.length > 0) {
+        const projCountry = (p.country || '').toLowerCase();
+        for (const typed of answers.countries) {
+          if (projCountry.includes(typed.toLowerCase()) || typed.toLowerCase().includes(projCountry)) {
+            locationMatched = true;
+            break;
+          }
+        }
+      }
+
+      // 2. Fall back to region chips if no typed countries (or in addition)
+      if (!locationMatched && answers.regions.length && !answers.regions.includes('any')) {
+        for (const region of answers.regions) {
+          const countries = regionMap[region] || [];
+          if (countries.some(c => p.country && p.country.toLowerCase() === c.toLowerCase())) {
+            locationMatched = true;
+            break;
+          }
+        }
+      }
+
+      if (locationMatched) {
+        score += 35;
+        reasons.push('region');
+      } else if (
+        (!answers.countries || answers.countries.length === 0) &&
+        (answers.regions.length === 0 || answers.regions.includes('any'))
+      ) {
+        score += 10; // anywhere is fine
+      }
+
+      // Languages
+      if (answers.languages.length && !answers.languages.includes('any') && !answers.languages.includes('Other')) {
+        const projLang = (p.languages || '').toLowerCase();
+        let langMatch = false;
+        for (const lang of answers.languages) {
+          if (projLang.includes(lang.toLowerCase())) {
+            langMatch = true;
+            break;
+          }
+        }
+        if (langMatch) {
+          score += 25;
+          reasons.push('language');
+        }
+      } else {
+        score += 8;
+      }
+
+      // Activity
+      if (answers.activities.length && !answers.activities.includes('any')) {
+        const projAct = (p.activity || '').toLowerCase();
+        let actMatch = false;
+        for (const act of answers.activities) {
+          if (projAct.includes(act.toLowerCase().split(' / ')[0].toLowerCase()) ||
+              projAct.includes(act.toLowerCase())) {
+            actMatch = true;
+            break;
+          }
+        }
+        if (actMatch) {
+          score += 30;
+          reasons.push('activity');
+        }
+      } else {
+        score += 10;
+      }
+
+      // Food preference
+      if (answers.food === 'meals') {
+        const f = (p.food || '').toLowerCase();
+        if (f.includes('1 meal') || f.includes('2 meal') || f.includes('3 meal')) {
+          score += 15;
+          reasons.push('food');
+        }
+      } else {
+        score += 5;
+      }
+
+      // Slight boost for openings
+      if (p.openings && Number(p.openings) > 1) score += 3;
+
+      return { score, reasons };
+    }
+
+    function showResults() {
+      document.getElementById('step-5').classList.add('hidden');
+      document.getElementById('loading').classList.remove('hidden');
+      document.getElementById('progress').style.opacity = '0.4';
+
+      setTimeout(() => {
+        const scored = allProjects.map(p => {
+          const { score, reasons } = scoreProject(p);
+          return { ...p, score, reasons };
+        });
+
+        scored.sort((a, b) => b.score - a.score);
+        const top = scored.filter(p => p.score > 40).slice(0, 5);
+        // If too few, take top 5 anyway
+        const recommendations = top.length >= 3 ? top : scored.slice(0, 5);
+
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('results').classList.remove('hidden');
+        document.getElementById('results-count').textContent =
+          `We found ${recommendations.length} strong matches for you.`;
+
+        const list = document.getElementById('results-list');
+        list.innerHTML = '';
+
+        recommendations.forEach((p, i) => {
+          const foodTag = (p.food || '').toLowerCase().includes('meal') && !(p.food || '').toLowerCase().startsWith('no')
+            ? `<span class="tag green">${p.food}</span>` : `<span class="tag">${p.food || 'no meals'}</span>`;
+          const transportTag = (p.transportation || '').includes('Provided and paid')
+            ? `<span class="tag green">Transport paid</span>`
+            : (p.transportation || '').includes('Provided')
+              ? `<span class="tag orange">Transport provided</span>`
+              : `<span class="tag">No transport</span>`;
+
+          const card = document.createElement('div');
+          card.className = 'result-card';
+          card.innerHTML = `
+            <span class="match-score">${Math.min(99, Math.round(p.score))}%</span>
+            <h3>${p.name}</h3>
+            <div class="result-meta">${p.country} · ${p.lc} · ${p.duration}</div>
+            <div class="result-tags">
+              <span class="tag">${p.activity ? p.activity.split(',')[0] : 'Project'}</span>
+              ${foodTag}
+              ${transportTag}
+            </div>
+            <div style="font-size:0.85rem;color:var(--muted);margin-bottom:10px;">
+              ${p.organisation || ''} · ${p.timelines ? p.timelines.split(',')[0] : ''}
+            </div>
+            <a href="${p.link}" target="_blank" rel="noopener">View on AIESEC →</a>
+          `;
+          list.appendChild(card);
+        });
+
+        // Store for later save
+        window._lastRecommendations = recommendations;
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }, 700);
+    }
+
+    function saveRecommendations() {
+      const name = document.getElementById('person-name').value.trim() || 'Anonymous';
+      const recs = window._lastRecommendations || [];
+
+      // In this prototype we just show thank you.
+      // In the real version this is where we would call Google Sheets API
+      // to: 1) increment popularity  2) append a row to the log sheet.
+
+      console.log('Would save:', {
+        name,
+        projects: recs.map(p => ({ id: p.id, name: p.name, country: p.country })),
+        timestamp: new Date().toISOString()
+      });
+
+      document.getElementById('results').classList.add('hidden');
+      document.getElementById('thankyou').classList.remove('hidden');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function restart() {
+      answers.duration = null;
+      answers.regions = [];
+      answers.countries = [];
+      answers.languages = [];
+      answers.activities = [];
+      answers.food = null;
+      document.querySelectorAll('.option').forEach(o => o.classList.remove('selected'));
+      document.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
+      document.getElementById('btn-1').disabled = true;
+      document.getElementById('btn-5').disabled = true;
+      document.getElementById('person-name').value = '';
+      const countryInput = document.getElementById('country-input');
+      if (countryInput) countryInput.value = '';
+      document.getElementById('progress').style.opacity = '1';
+      showStep(0);
+    }
+
+    // Start
+    init();
+  </script>
+</body>
+</html>
